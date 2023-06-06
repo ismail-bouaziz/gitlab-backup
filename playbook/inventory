@@ -1,0 +1,2 @@
+[gitlab]
+gitlab.onetech-group.corp ansible_user=root

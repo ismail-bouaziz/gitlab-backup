@@ -1,0 +1,34 @@
+---
+- name: Prepare backup dir.
+  hosts: localhost
+  tasks:
+  - name: Create month dir.
+    file:
+      path: "/mnt/backup/{{ ansible_date_time.month }}"
+      state: directory
+
+- name: Backup gitlab.
+  hosts: gitlab
+  tasks:
+  - name: Delete old backups.
+    file:
+      state: absent
+      path: "/var/opt/gitlab/backups"
+  - name: Create backup dir.
+    file:
+      path: "/var/opt/gitlab/backups"
+      state: directory
+      owner: git
+      group: git
+  - name: launch backup command
+    shell:
+      cmd: sudo gitlab-backup create
+  - name: Creat archive of backup.
+    archive:
+      path: "/var/opt/gitlab/backups"
+      dest: "/var/opt/gitlab/backups/gitlab-{{ ansible_date_time.day }}.tgz"
+  - name: Fetch backup files.
+    fetch:
+      src: "/var/opt/gitlab/backups/gitlab-{{ ansible_date_time.day }}.tgz"
+      dest: "/mnt/backup/{{ ansible_date_time.month }}/localhost/gitlab.{{ ansible_date_time.day }}"
+      flat: yes
