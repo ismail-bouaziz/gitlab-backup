@@ -23,7 +23,7 @@ $ sudo systemctl start postfix
 ```bash
 $ curl https://packages.gitlab.com/install/repositories/gitlab/gitlab-ee/script.rpm.sh | sudo bash
 ```
-* Install the package, change '<version>' with your gitlab backup version. Make sure you have correctly set up your DNS, and change https://gitlab.example.com to the URL at which you want to access your GitLab instance.:
+* Install the package, change <version> with your gitlab backup version. Make sure you have correctly set up your DNS, and change https://gitlab.example.com to the URL at which you want to access your GitLab instance.:
 ```bash
 $ sudo EXTERNAL_URL="https://gitlab.example.com" yum install -y gitlab-ee-<version>
 ```
