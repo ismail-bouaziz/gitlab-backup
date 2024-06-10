@@ -32,3 +32,14 @@
       src: "/var/opt/gitlab/backups/gitlab-{{ ansible_date_time.day }}.tgz"
       dest: "/mnt/backup/{{ ansible_date_time.month }}/localhost/gitlab.{{ ansible_date_time.day }}"
       flat: yes
+  - name: Send Email Notification.
+    mail:
+      host: smtp.server.com
+      port: 587
+      username: "{{ username }}"
+      password: "{{ password }}"
+      subject: "Configuration change on same divices"
+      body: |
+          mail content sucess !!!!
+        from: "{{ username }}"
+        to: "ismailboaziz@gmail.com"   
