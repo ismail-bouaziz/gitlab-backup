@@ -1,72 +1,38 @@
-# Introduction
-Backup GitLab with an Ansible playbook and save the backup file in a backup VM on the OpenStack cloud.
+# Backup GitLab with Ansible
 
-# GitLab installations (RHEL / CentOS 7)
+This project automates the backup of a GitLab instance using Ansible. A cron job on a virtual machine (VM) executes the Ansible playbook that performs the backup, transfers the archived data to a backup storage location, and sends an email notification upon successful completion.
 
-Install prerequisites:
+## Architecture
 
+![Architecture Diagram](docs/architecture_image.png)
 
-$ sudo yum install -y curl policycoreutils-python-utils openssh-server perl
+### Explanation
 
-* Enable OpenSSH server daemon if not enabled: sudo systemctl status sshd:
+1. **VM Backup**: A virtual machine where a cron job is set up to periodically run the Ansible playbook.
+2. **Cron Job**: A scheduled task that triggers the Ansible playbook at specified intervals.
+3. **Ansible Playbook**: A set of automated instructions to back up the GitLab server, transfer the backup to the storage, and send an email notification.
+4. **GitLab Server**: The source server where GitLab is running and needs to be backed up.
+5. **Backup Storage**: The destination storage where the backups are archived for safekeeping.
 
-$ sudo systemctl enable sshd
-$ sudo systemctl start sshd
+### Steps
 
-* If gitlab is configured to send mail to users, install postfix:
+1. **Cron Job Execution**: The cron job on the VM runs the Ansible playbook at scheduled times.
+2. **Stop GitLab Services**: The playbook stops GitLab services to ensure data consistency during backup.
+3. **Backup GitLab Data**: The playbook creates a compressed archive of the GitLab data.
+4. **Start GitLab Services**: The playbook restarts GitLab services after the backup is complete.
+5. **Transfer to Backup Storage**: The playbook transfers the backup archive to the specified backup storage.
+6. **Send Email Notification**: The playbook sends an email notification after a successful backup and transfer.
+7. **Cleanup**: The playbook removes old backups to manage storage space.
 
-$ sudo yum install postfix
-$ sudo systemctl enable postfix
-$ sudo systemctl start postfix
+### Requirements
 
-* Add the GitLab package repository:
-
-$ curl https://packages.gitlab.com/install/repositories/gitlab/gitlab-ee/script.rpm.sh | sudo bash
-
-* Install the package, change '<version>' with your gitlab backup version. Make sure you have correctly set up your DNS, and change https://gitlab.example.com to the URL at which you want to access your GitLab instance.:
-
-$ sudo EXTERNAL_URL="https://gitlab.example.com" yum install -y gitlab-ee-<version>
-
-# Restore for Omnibus GitLab installations
-
-* First ensure your backup tar file is in the backup directory described in the gitlab.rb configuration gitlab_rails['backup_path']. The default is /var/opt/gitlab/backups. The backup file needs to be owned by the git user.
-
-$ sudo cp 11493107454_2018_04_25_10.6.4-ce_gitlab_backup.tar /var/opt/gitlab/backups/
-$ sudo chown git:git /var/opt/gitlab/backups/11493107454_2018_04_25_10.6.4-ce_gitlab_backup.tar
-
-* Restore prerequisites
-You need to have a working GitLab installation before you can perform a restore. This is because the system user performing the restore actions (git) is usually not allowed to create or delete the SQL database needed to import data into (gitlabhq_production). All existing data is either erased (SQL) or moved to a separate directory (such as repositories and uploads).
-
-To restore a backup, you must also restore the GitLab secrets.
-
-These include the database encryption key, CI/CD variables, and variables used for two-factor authentication.
-
-Without the keys, multiple issues occur, including loss of access by users with two-factor authentication enabled, and GitLab Runners cannot log in.
-
-Restore:
-
-/etc/gitlab/gitlab-secrets.json (Linux package)
-/home/git/gitlab/.secret (self-compiled installations)
-Rails secret (cloud-native GitLab)
-This can be converted to the Linux package format, if required.
-You may also want to restore your previous /etc/gitlab/gitlab.rb (for Omnibus packages) or /home/git/gitlab/config/gitlab.yml (for installations from source) and any TLS keys, certificates (/etc/gitlab/ssl, /etc/gitlab/trusted-certs), or SSH host keys
-
-* Stop the processes that are connected to the database. Leave the rest of GitLab running:
-
-$ sudo gitlab-ctl stop puma
-$ sudo gitlab-ctl stop sidekiq
-$ sudo gitlab-ctl status
-
-* Next, restore the backup, specifying the timestamp of the backup you wish to restore:
-
-$ sudo gitlab-backup restore BACKUP=11493107454_2018_04_25_10.6.4-ce
-
-* Reconfigure, restart and check GitLab:
-
-$ sudo gitlab-ctl reconfigure
-$ sudo gitlab-ctl restart
-$ sudo gitlab-rake gitlab:check SANITIZE=true
+- Ansible installed on the VM
+- SSH access to the GitLab server and backup storage
+- Sufficient permissions to perform backup and transfer operations
+- An SMTP server or service for sending email notifications
 
 
+### Example Cron Job
 
-![GitLab](https://1000logos.net/wp-content/uploads/2023/04/Gitlab-logo-500x281.png)
+```cron
+0 04 * * 2-6 ansible-playbook -i gitlab_backup/playbook/gitlab-backup.yml
